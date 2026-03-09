@@ -50,6 +50,11 @@ PACKAGES=(
         jdk17-openjdk
         jdk21-openjdk
         ollama-cuda
+        yazi
+        swww
+        mpvpaper
+        hyprpaper
+        jq
     )
 PACKAGES_FLATPAK=(
         it.mijorus.gearlever
@@ -69,7 +74,7 @@ installation() {
     sudo pacman -S --noconfirm "${PACKAGES[@]}"
     tldr --update
     flatpak install -y flathub "${PACKAGES_FLATPAK[@]}"
-    paru -S brother-dcp7065dn
+    paru -S brother-dcp7065dn 
 }
 
 Secure_Boot_Setup() {
