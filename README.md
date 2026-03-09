@@ -1,7 +1,7 @@
 # dotfiles
 Essential configuration files and installation scripts for my CachyOS setup.
 
-#Skopiuj i wklej poniższą komendę w terminalu:
+## Install and Config:
 
 ```bash
 sudo pacman -Syu --needed --noconfirm git \
