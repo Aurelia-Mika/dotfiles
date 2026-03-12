@@ -49,7 +49,7 @@ choice_wallpaper(){
     local search_dir="$3"
     local monitor_name="$4"
     local wallpaper=$(find "$search_dir/$1" "$search_dir/$2" -type f \( -name "*.png" -o -name "*.jpg" -o -name "*.jpeg" \) 2>/dev/null | shuf -n 1)
-    local short_path="${wallpaper#"$HOME/.config/hypr/"}"
+    local short_path="${wallpaper#"$HOME/.config/hypr/Wallpapers/"}"
     echo "$wallpaper"
     if [ -n "$wallpaper" ]; then
         log "$short_path was chosen for $monitor_name"
@@ -64,8 +64,7 @@ set_wallpaper(){
     local orientation="$2"
     local wallpaper="$3"
     local search_dir="$4"
-    local short_path="${wallpaper#"$HOME/.config/hypr/"}"
-
+    local short_path="${wallpaper#"$HOME/.config/hypr/Wallpapers/"}"
     if [ -n "$wallpaper" ]; then
         swww img -o "$monitor_name" "$wallpaper" --transition-type center &>/dev/null
         log "Monitor $monitor_name: set $short_path"
@@ -80,9 +79,8 @@ set_wallpaper(){
 
 start_daemon_if_not_working(){
     if ! pgrep -x "swww-daemon" > /dev/null; then
-
         swww-daemon &>/dev/null &
-        # Wait for swww to respond
+        log "Wait for swww to respond"
         local timeout=10
         while [ $timeout -gt 0 ]; do
             if swww query &>/dev/null; then break; fi
@@ -125,16 +123,13 @@ make_folders(){
 }
 
 is_daytime() {
-    local hour
-    hour=$(date +%-H)
+    local hour=$(date +%-H)
     (( hour >= DAY_START && hour < DAY_END ))
 }
 
 # diagnostic tools
 noti(){
-    notify-send "Wallpaper Script" \
-    "$1" \
-    -t "${2:-100}" -u "${3:-low}"
+    notify-send "Wallpaper Script" "$1" -t "${2:-100}" -u "${3:-low}"
     log "$1"
 }
 
@@ -147,16 +142,18 @@ log_sleep_info() {
     local seconds="$2"
     local hour=$(( seconds / 3600 ))
     local minutes=$(( (seconds % 3600) / 60 ))
-    log "$monitor_name: next change in $(printf "%02d:%02d" $hour $minutes)"
+    local second=$(( (seconds % 3600) / 60 ))
+    log "$monitor_name: next change in $(printf "%02d:%02d:%02d" $hour $minutes $second)"
 }
 
 initialize_environment(){
+    log "Wallpaper Script started"
     if [ ! -d "$WALLPAPER_ROOT/logs" ]; then
         mkdir -p "$WALLPAPER_ROOT/logs"
         log "Folder $WALLPAPER_ROOT/logs has been created."
-        created=1
     fi
     ls -1t "$WALLPAPER_ROOT/logs/"*.log 2>/dev/null | tail -n +6 | xargs -d '\n' -r rm --
+    log "Wallpaper Script has deleted old log"
     for folder in "${core_folders[@]}"; do
         if [ ! -d "$folder" ]; then
             noti  "Folder $folder does not exist." 1000
