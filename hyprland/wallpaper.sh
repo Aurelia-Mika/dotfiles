@@ -1,7 +1,8 @@
 #!/bin/bash
 
 WALLPAPER_ROOT="$HOME/.config/hypr/Wallpapers"
-LOG_FILE="$WALLPAPER_ROOT/logs/$(date "+%d %B %H:%M:%S").log"
+LOG_DIR="$HOME/.local/log/wallpaper"
+LOG_FILE="$LOG_DIR/$(date "+%d %B %H:%M:%S").log"
 DAY_START=7
 DAY_END=19
 core_folders=(
@@ -13,6 +14,10 @@ core_folders=(
     "$WALLPAPER_ROOT/vertical/day"
     "$WALLPAPER_ROOT/vertical/night"
     )
+WALLPAPERS_IN_USE_DIR="/tmp/wallpaper.sh"
+TRANSITION_TYPE="wipe"
+SLEEP_MIN=1800
+SLEEP_MAX=7200
 
 setup_monitors_and_daemon(){
     start_daemon_if_not_working
@@ -39,16 +44,26 @@ manage_monitor() {
 
         set_wallpaper "$monitor_name" "$orientation" "$wallpaper" "$search_dir"
 
-        local sleep_time=$(( RANDOM % 3601 + 1800 ))
-        log_sleep_info "$monitor_name" "$sleep_time"
-        sleep "$sleep_time"
+        if [ -n "$wallpaper" ]; then
+            echo "$wallpaper" > "$WALLPAPERS_IN_USE_DIR/$monitor_name"
+    
+            local sleep_time=$(( RANDOM % (SLEEP_MAX - SLEEP_MIN + 1) + SLEEP_MIN ))
+            log_sleep_info "$monitor_name" "$sleep_time"
+            sleep "$sleep_time"
+            rm -f "$WALLPAPERS_IN_USE_DIR/$monitor_name"
+        else
+            sleep 5
+        fi
     done
 }
 
 choice_wallpaper(){
     local search_dir="$3"
     local monitor_name="$4"
-    local wallpaper=$(find "$search_dir/$1" "$search_dir/$2" -type f \( -name "*.png" -o -name "*.jpg" -o -name "*.jpeg" \) 2>/dev/null | shuf -n 1)
+    local wallpaper
+    wallpaper=$(find "$search_dir/$1" "$search_dir/$2" -type f \( -name "*.png" -o -name "*.jpg" -o -name "*.jpeg" -o -name "*.gif" -o -name "*.tiff" -o -name "*.webp" \) 2>/dev/null \
+        | grep -Fxv -f <(ls "$WALLPAPERS_IN_USE_DIR"/ 2>/dev/null | xargs -I {} cat "$WALLPAPERS_IN_USE_DIR/{}" || echo "") \
+        | shuf -n 1)
     local short_path="${wallpaper#"$HOME/.config/hypr/Wallpapers/"}"
     echo "$wallpaper"
     if [ -n "$wallpaper" ]; then
@@ -66,12 +81,16 @@ set_wallpaper(){
     local search_dir="$4"
     local short_path="${wallpaper#"$HOME/.config/hypr/Wallpapers/"}"
     if [ -n "$wallpaper" ]; then
-        swww img -o "$monitor_name" "$wallpaper" --transition-type center &>/dev/null
-        log "Monitor $monitor_name: set $short_path"
+        local angle=$((RANDOM % 360))
+        timeout 5 swww img -o "$monitor_name" "$wallpaper" --transition-type "$TRANSITION_TYPE" --transition-angle "$angle" &>/dev/null
+        if [ $? -eq 0 ]; then
+            log "Monitor $monitor_name: set $short_path"
+        else
+            log "Błąd: swww timeout dla $monitor_name"
+        fi
     else
-
         log "Błąd: Brak tapet w folderach dla $monitor_name ($orientation)"
-        log "Number of files in $short_path: $(find "$search_dir" -type f 2>/dev/null | wc -l)"
+        log "Number of files in $search_dir: $(find "$search_dir" -type f 2>/dev/null | wc -l)"
     fi
 }
 
@@ -91,14 +110,23 @@ start_daemon_if_not_working(){
 }
 
 check_orientation(){
-    hyprctl monitors -j | jq -r '.[] | "\(.name) \(.transform)"' | while read -r name transform; do
-        if [[ "$transform" -eq 1 || "$transform" -eq 3 ]]; then
-            local orientation="vertical"
+    if ! command -v hyprctl &> /dev/null; then
+        log "Błąd: hyprctl nie znaleziony"
+        return 1
+    fi
+    
+    hyprctl monitors -j | jq -r '.[] | "\(.name) \(.transform)"' 2>/dev/null | while read -r name transform; do
+        if [[ "$transform" =~ ^[0-3]$ ]]; then
+            if [[ "$transform" -eq 1 || "$transform" -eq 3 ]]; then
+                local orientation="vertical"
+            else
+                local orientation="horizontal"
+            fi
+            sleep 0.1
+            echo "$name $orientation"
         else
-            local orientation="horizontal"
+            log "Błąd: Nieznana orientacja $transform dla $name"
         fi
-        sleep 0.1
-        echo "$name $orientation"
     done
 }
 
@@ -112,6 +140,7 @@ init_folders() {
 }
 
 make_folders(){
+    local made_any="0"
     for folder in "$@"; do
         if [ ! -d "$folder" ]; then
             mkdir -p "$folder"
@@ -142,17 +171,17 @@ log_sleep_info() {
     local seconds="$2"
     local hour=$(( seconds / 3600 ))
     local minutes=$(( (seconds % 3600) / 60 ))
-    local second=$(( (seconds % 3600) / 60 ))
+    local second=$(( seconds % 60 ))
     log "$monitor_name: next change in $(printf "%02d:%02d:%02d" $hour $minutes $second)"
 }
 
 initialize_environment(){
     log "Wallpaper Script started"
-    if [ ! -d "$WALLPAPER_ROOT/logs" ]; then
-        mkdir -p "$WALLPAPER_ROOT/logs"
-        log "Folder $WALLPAPER_ROOT/logs has been created."
+    if [ ! -d "$LOG_DIR" ]; then
+        mkdir -p "$LOG_DIR"
+        log "Folder $LOG_DIR has been created."
     fi
-    ls -1t "$WALLPAPER_ROOT/logs/"*.log 2>/dev/null | tail -n +6 | xargs -d '\n' -r rm --
+    ls -1t "$LOG_DIR/"*.log 2>/dev/null | tail -n +6 | xargs -d '\n' -r rm --
     log "Wallpaper Script has deleted old log"
     for folder in "${core_folders[@]}"; do
         if [ ! -d "$folder" ]; then
@@ -160,7 +189,14 @@ initialize_environment(){
             init_folders
         fi
     done
+    mkdir -p "$WALLPAPERS_IN_USE_DIR"
 }
 
+cleanup() {
+    log "Wallpaper Script stopped gracefully"
+    rm -rf "$WALLPAPERS_IN_USE_DIR"
+}
+
+trap 'cleanup; exit 0' SIGTERM SIGINT
 initialize_environment
 setup_monitors_and_daemon
