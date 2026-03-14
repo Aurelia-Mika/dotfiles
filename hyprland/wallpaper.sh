@@ -2,7 +2,7 @@
 
 WALLPAPER_ROOT="$HOME/.config/hypr/Wallpapers"
 LOG_DIR="$HOME/.local/log/wallpaper"
-LOG_FILE="$LOG_DIR/$(date "+%d %B %H:%M:%S").log"
+LOG_FILE="$LOG_DIR/$(date "+%d-%b-%H:%M:%S").log"
 DAY_START=7
 DAY_END=19
 core_folders=(
@@ -18,6 +18,8 @@ WALLPAPERS_IN_USE_DIR="/tmp/wallpaper.sh"
 TRANSITION_TYPE="wipe"
 SLEEP_MIN=1800
 SLEEP_MAX=7200
+TRANSITION_DURATION=1  # seconds
+TRANSITION_FPS=60
 
 setup_monitors_and_daemon(){
     start_daemon_if_not_working
@@ -80,17 +82,29 @@ set_wallpaper(){
     local wallpaper="$3"
     local search_dir="$4"
     local short_path="${wallpaper#"$HOME/.config/hypr/Wallpapers/"}"
+    
+    log "DEBUG: set_wallpaper called - monitor=$monitor_name, wallpaper=$wallpaper"
+    
     if [ -n "$wallpaper" ]; then
         local angle=$((RANDOM % 360))
-        timeout 5 swww img -o "$monitor_name" "$wallpaper" --transition-type "$TRANSITION_TYPE" --transition-angle "$angle" &>/dev/null
-        if [ $? -eq 0 ]; then
+        log "DEBUG: Running swww img command with angle=$angle, fps=$TRANSITION_FPS"
+        
+        timeout 5 swww img -o "$monitor_name" "$wallpaper" \
+            --transition-type "$TRANSITION_TYPE" \
+            --transition-angle "$angle" \
+            --transition-duration "$TRANSITION_DURATION" \
+            --transition-fps "$TRANSITION_FPS"
+        
+        local result=$?
+        log "DEBUG: swww result code: $result"
+        
+        if [ $result -eq 0 ]; then
             log "Monitor $monitor_name: set $short_path"
         else
-            log "Błąd: swww timeout dla $monitor_name"
+            log "Błąd: swww failed (code $result) dla $monitor_name"
         fi
     else
         log "Błąd: Brak tapet w folderach dla $monitor_name ($orientation)"
-        log "Number of files in $search_dir: $(find "$search_dir" -type f 2>/dev/null | wc -l)"
     fi
 }
 
