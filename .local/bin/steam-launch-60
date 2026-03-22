@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+
+export GS_REFRESH=120
+export DXVK_FRAME_RATE=120
+export VKD3D_FRAME_RATE=120
+export NVPRESENT_ENABLE_SMOOTH_MOTION=1
+
+exec ~/.local/bin/steam-launch "$@"

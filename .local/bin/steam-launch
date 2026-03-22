@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+
+source ~/.local/bin/default
+
+export DXVK_FRAME_RATE=${DXVK_FRAME_RATE:-360}
+export VKD3D_FRAME_RATE=${VKD3D_FRAME_RATE:-360}
+GS_REFRESH=${GS_REFRESH:-360}
+
+GAMESCOPE_ARGS=("-W" "2560" "-H" "1440" "-f" "-r" "$GS_REFRESH" "--immediate-flips" "--adaptive-sync" "--hdr-enabled")
+
+if [[ -n "$GS_EXTRA" ]]; then
+    GAMESCOPE_ARGS+=($GS_EXTRA)
+fi
+
+exec game-performance gamescope "${GAMESCOPE_ARGS[@]}" "$@"

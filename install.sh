@@ -6,7 +6,7 @@ if ! grep -qi "cachyos" /etc/os-release; then
     exit 1
 fi
 
-source ./biblioteka.sh
+source ./functions.sh
 
 installation
 
@@ -17,3 +17,6 @@ fi
 base_conf
 bootloader
 apparmor
+
+
+chmod +x ./.local/bin/*

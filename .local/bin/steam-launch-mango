@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+
+export GS_EXTRA="--mangoapp"
+
+exec ~/.local/bin/steam-launch "$@"

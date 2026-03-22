@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+
+export NVPRESENT_ENABLE_SMOOTH_MOTION=1
+
+exec ~/.local/bin/steam-launch "$@"

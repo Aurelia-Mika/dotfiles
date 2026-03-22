@@ -1,3 +1,5 @@
+#!/bin/bash
+
 PACKAGES=(
         sbctl
         appmenu-gtk-module
@@ -49,7 +51,6 @@ PACKAGES=(
         jdk11-openjdk
         jdk17-openjdk
         jdk21-openjdk
-        ollama-cuda
         yazi
         swww
         mpvpaper
