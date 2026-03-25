@@ -52,7 +52,7 @@ PACKAGES=(
         jdk17-openjdk
         jdk21-openjdk
         yazi
-        swww
+        awww
         mpvpaper
         hyprpaper
         jq

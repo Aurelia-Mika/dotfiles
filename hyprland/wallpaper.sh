@@ -87,21 +87,21 @@ set_wallpaper(){
     
     if [ -n "$wallpaper" ]; then
         local angle=$((RANDOM % 360))
-        log "DEBUG: Running swww img command with angle=$angle, fps=$TRANSITION_FPS"
+        log "DEBUG: Running awww img command with angle=$angle, fps=$TRANSITION_FPS"
         
-        timeout 5 swww img -o "$monitor_name" "$wallpaper" \
+        timeout 5 awww img -o "$monitor_name" "$wallpaper" \
             --transition-type "$TRANSITION_TYPE" \
             --transition-angle "$angle" \
             --transition-duration "$TRANSITION_DURATION" \
             --transition-fps "$TRANSITION_FPS"
         
         local result=$?
-        log "DEBUG: swww result code: $result"
+        log "DEBUG: awww result code: $result"
         
         if [ $result -eq 0 ]; then
             log "Monitor $monitor_name: set $short_path"
         else
-            log "Błąd: swww failed (code $result) dla $monitor_name"
+            log "Błąd: awww failed (code $result) dla $monitor_name"
         fi
     else
         log "Błąd: Brak tapet w folderach dla $monitor_name ($orientation)"
@@ -111,12 +111,12 @@ set_wallpaper(){
 # lowlevel logic
 
 start_daemon_if_not_working(){
-    if ! pgrep -x "swww-daemon" > /dev/null; then
-        swww-daemon &>/dev/null &
-        log "Wait for swww to respond"
+    if ! pgrep -x "awww-daemon" > /dev/null; then
+        awww-daemon &>/dev/null &
+        log "Wait for awww to respond"
         local timeout=10
         while [ $timeout -gt 0 ]; do
-            if swww query &>/dev/null; then break; fi
+            if awww query &>/dev/null; then break; fi
             sleep 0.5
             ((timeout--))
         done
